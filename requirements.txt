@@ -1,1 +1,5 @@
 Django==1.4.2
+lxml==3.0.1
+South==0.7.6
+celery==3.0.12
+django-celery==3.0.11
