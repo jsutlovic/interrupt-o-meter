@@ -1,0 +1,78 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+hr {
+  height: 1px;
+  margin: 10px;
+  border-bottom: 0;
+}
+
+.hidden {
+  display: none;
+}
+
+h1.title {
+  text-align: center;
+  font-family: "FuroreRegular";
+  margin: 1em;
+}
+
+#interrupts_graph {
+  height: 300px;
+  margin: 20px 24px;
+}
+
+.span4 {
+  background-color: #FAFAFA;
+  text-align: center;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  border: 1px solid #252526;
+  border-radius: 10px;
+}
+
+.span4 h3 {
+}
+
+.hotfix {
+  color: #FF3016;
+}
+.hotfix hr {
+  border-color: #FF3016;
+}
+
+.outage {
+  background-color: #222436;
+  color: #FAFAEE;
+}
+.outage hr {
+  border-color: #FAFAEE;
+}
+
+.interrupts {
+  color: #FF3016;
+}
+
+.days {
+  font-family: "FuroreRegular";
+  font-size: 46pt;
+  line-height: 1.2em;
+  display: block;
+}
+
+.days.small {
+  font-size: 14pt;
+  padding-bottom: .8em;
+}
+
+.outage .reset.btn {
+}
+
+div.flotr-labels {
+/*  font-family: "FuroreRegular";*/
+  font-weight: bold;
+  text-align: left;
+}
