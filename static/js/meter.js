@@ -44,7 +44,7 @@
         }
     });
 
-})($('#interrupts_graph').get(0), interrupt_data);
+});//($('#interrupts_graph').get(0), interrupt_data);
 
 
 $(function(){
