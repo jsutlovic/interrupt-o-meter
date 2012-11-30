@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, abort
 from datetime import date
 import shelve
 import json
@@ -28,14 +28,23 @@ def merge_iom_data(new, old):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        if 'reset_outage' in request.form:
-            print "Reset Outage!"
+        if 'reset' in request.form:
+            if request.form.get('reset') == 'hotfix':
+                last_outage = 0
+                SHELF['last_hotfix'] = date.today()
+                SHELF.sync()
+                return "OK"
 
-        elif 'reset_hotfix' in request.form:
-            print "Reset Hotfix!"
+            elif request.form.get('reset') == 'outage':
+                last_hotfix = 0
+                SHELF['last_outage'] = date.today()
+                SHELF.sync()
+                return "OK"
 
-        elif 'reset_iteration' in request.form:
-            print "Reset iteration!"
+            elif request.form.get('reset') == 'iteration':
+                return "Reset iteration!"
+
+        abort(400)
 
     last_outage = (date.today() - SHELF['last_outage']).days
     if last_outage > SHELF['max_outage']:
@@ -101,7 +110,7 @@ def setup():
 
 
 if __name__ == '__main__':
-    if not SHELF.has_key('setup'):
+    if not SHELF.has_key('setup') or DEBUG:
         setup()
 
     port = os.environ.get('PORT', 8084)

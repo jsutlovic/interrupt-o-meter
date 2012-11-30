@@ -1,4 +1,4 @@
-(function interrupt_bar_stacked(container, data){
+function interrupt_bar_stacked(container, data){
     var d1 = data.done,
         d2 = data.started,
         d3 = data.planned,
@@ -54,13 +54,39 @@
         }
     });
 
-})($('#interrupts_graph').get(0), interrupt_data);
+};
 
 
-$(function(){
+var update_page = function(days_since, interrupt_data) {
     $(".hotfix .days.current").text(days_since.hotfix.current.toFixed());
     $(".hotfix .days.max").text(days_since.hotfix.max.toFixed());
 
     $(".outage .days.current").text(days_since.outage.current.toFixed());
     $(".outage .days.max").text(days_since.outage.max.toFixed());
+
+    interrupt_bar_stacked($('#interrupts_graph').get(0), interrupt_data);
+}
+
+$(function(){
+    update_page(days_since, interrupt_data);
+
+    $("a.reset.btn").click(function(e){
+        e.preventDefault();
+
+        var which = $(this).attr('href').replace('#', '');
+
+        $.post(
+            '/',
+            {reset: which},
+            function(data) {
+                if (which == 'hotfix') {
+                    days_since.hotfix.current = 0;
+                } else if (which == 'outage') {
+                    days_since.outage.current = 0;
+                }
+
+                update_page(days_since, interrupt_data);
+            }
+        );
+    });
 });
