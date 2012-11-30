@@ -85,7 +85,7 @@ def index():
     return render_template('index.html', days_since=days_since, iom_data=iom_data)
 
 
-def setup():
+def setup_db():
     """
     Provides some basic initial data for the app
     """
@@ -110,7 +110,7 @@ def setup():
 
 if __name__ == '__main__':
     if not SHELF.has_key('setup') or DEBUG:
-        setup()
+        setup_db()
 
     port = os.environ.get('PORT', 8084)
     try:
