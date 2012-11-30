@@ -41,16 +41,7 @@
         icebox: [[0, 1]],
       }
 
-      var days_since = {
-        hotfix: {
-          current: 3,
-          max: 10,
-        },
-        outage: {
-          current: 2,
-          max: 12,
-        }
-      }
+      var days_since = {{ days_since|safe }};
     </script>
   </head>
 
