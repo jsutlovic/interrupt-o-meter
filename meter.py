@@ -1,15 +1,31 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from datetime import date
 import shelve
 import json
+import os
+import sys
 
 app = Flask(__name__)
 
 DATA_FILE = 'meter'
 SHELF = shelve.open(DATA_FILE, writeback=True)
+DEBUG = 'dev' in os.environ or 'dev' in sys.argv
 
 
-@app.route('/')
+def merge_iom_data(new, old):
+    return dict(
+            (k, v) for (k, v) in
+            zip(
+                new.keys(),
+                zip(
+                    zip([0]*4, new.values()),
+                    zip([1]*4, old.values())
+                )
+            )
+        )
+
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
     last_outage = (date.today() - SHELF['last_outage']).days
     if last_outage > SHELF['max_outage']:
@@ -36,12 +52,15 @@ def index():
         }
     }
 
-    iom_data = {
-        'done': [[0, 3]],
-        'started': [[0, 2]],
-        'planned': [[0, 4]],
-        'icebox': [[0, 1]]
+    current_data = {
+        'done': 3,
+        'started': 2,
+        'planned': 4,
+        'icebox': 1
     }
+
+    iom_data = merge_iom_data(current_data, SHELF['last_iteration_data'])
+    iom_data = json.dumps(iom_data)
 
     days_since = json.dumps(days_since_data)
     return render_template('index.html', days_since=days_since, iom_data=iom_data)
@@ -59,6 +78,14 @@ def setup():
     SHELF['last_hotfix'] = date(2012, 11, 23)
     SHELF['max_hotfix'] = 0
 
+    SHELF['current_iteration'] = date(2012, 11, 12)
+    SHELF['last_iteration_data'] = {
+        'done': 0,
+        'started': 0,
+        'planned': 0,
+        'icebox': 0
+    }
+
     # Finished setup, so we're set up
     SHELF['setup'] = True
 
@@ -67,4 +94,13 @@ if __name__ == '__main__':
     if not SHELF.has_key('setup'):
         setup()
 
-    app.run(host='0.0.0.0', port=8084, debug=True)
+    port = os.environ.get('PORT', 8084)
+    try:
+        port = int(port)
+    except ValueError:
+        print 'Invalid port: %s' % port
+
+    print "Settings:"
+    print "Debug: %s" % DEBUG
+    print "Port: %d" % port
+    app.run(host='0.0.0.0', port=port, debug=DEBUG)
