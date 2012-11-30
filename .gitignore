@@ -36,7 +36,7 @@ nosetests.xml
 
 
 # JS libraries
-static/libs
+#static/libs
 
 # sqlite DB
 meter.db
