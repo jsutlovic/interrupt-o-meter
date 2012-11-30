@@ -89,8 +89,6 @@ def setup():
     """
     Provides some basic initial data for the app
     """
-    SHELF['create_date'] = date.today()
-
     SHELF['last_outage'] = date(2012, 11, 24)
     SHELF['max_outage'] = 0
 
@@ -107,6 +105,7 @@ def setup():
 
     # Finished setup, so we're set up
     SHELF['setup'] = True
+    SHELF.sync()
 
 
 if __name__ == '__main__':
