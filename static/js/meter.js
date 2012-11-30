@@ -16,7 +16,18 @@
             backgroundColor: "#FAFDFE",
         },
         xaxis: {
-            noTicks: 0,
+            noTicks: 3,
+            min: -2,
+            tickDecimals: 0,
+            tickFormatter: function(val, config) {
+                if (val == '0') {
+                    return 'current';
+                } else if (val == '1') {
+                    return 'last';
+                } else {
+                    return '';
+                }
+            }
         },
         yaxis: {
             min: 0,
@@ -26,7 +37,6 @@
                 var max = 10;
                 var red_val = Math.round(Math.min((cur_num/max)*255, 255)).toString(16);
                 var ret = "<span style='color: #" + red_val + "0000'>" + cur_num + "</span>";
-                console.log(ret);
                 return ret;
             }
         },
