@@ -36,8 +36,15 @@ def index():
         }
     }
 
+    iom_data = {
+        'done': [[0, 3]],
+        'started': [[0, 2]],
+        'planned': [[0, 4]],
+        'icebox': [[0, 1]]
+    }
+
     days_since = json.dumps(days_since_data)
-    return render_template('index.html', days_since=days_since)
+    return render_template('index.html', days_since=days_since, iom_data=iom_data)
 
 
 def setup():
