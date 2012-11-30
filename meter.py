@@ -27,6 +27,16 @@ def merge_iom_data(new, old):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        if 'reset_outage' in request.form:
+            print "Reset Outage!"
+
+        elif 'reset_hotfix' in request.form:
+            print "Reset Hotfix!"
+
+        elif 'reset_iteration' in request.form:
+            print "Reset iteration!"
+
     last_outage = (date.today() - SHELF['last_outage']).days
     if last_outage > SHELF['max_outage']:
         SHELF['max_outage'] = last_outage
