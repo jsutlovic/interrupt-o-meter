@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, abort
-from datetime import date
+from pyquery import PyQuery as pq
+from datetime import date, datetime
 import shelve
 import json
 import os
@@ -10,6 +11,7 @@ app = Flask(__name__)
 DATA_FILE = 'meter'
 SHELF = shelve.open(DATA_FILE, writeback=True)
 DEBUG = 'dev' in os.environ or 'dev' in sys.argv
+DATE_FORMAT = '%Y/%m/%d %H:%M:%S %Z'
 
 
 def merge_iom_data(new, old):
@@ -23,6 +25,17 @@ def merge_iom_data(new, old):
                 )
             )
         )
+
+
+def parse_pivotal_xml(xml):
+    stories = pq(xml)
+    for story in stories("story"):
+        s = pq(story)
+
+        print s.children("current_state").text()
+        print s.children("created_at")
+        print datetime.strptime(s.children("created_at").text(), DATE_FORMAT)
+        print "====="
 
 
 @app.route('/', methods=['GET', 'POST'])
