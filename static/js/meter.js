@@ -6,10 +6,10 @@ function interrupt_bar_stacked(container, data){
         graph;
 
     graph = Flotr.draw(container, [
-        { data: d4, label: "Icebox" },
-        { data: d3, label: "Planned" },
-        { data: d2, label: "Started" },
         { data: d1, label: "Done" },
+        { data: d2, label: "Started" },
+        { data: d3, label: "Planned" },
+        { data: d4, label: "Icebox" },
     ], {
         colors: ['#00A8F0', '#CCCCCC', '#C0D800', '#4DA74D'],
         legend: {
