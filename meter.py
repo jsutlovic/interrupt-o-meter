@@ -103,6 +103,11 @@ def parse_pivotal_xml(xml):
     return current_data, last_data
 
 
+def update_meter_data():
+    # Get data from pivotal
+    # process data
+    # set data to SHELF
+    raise NotImplemented
 
 
 @app.route('/', methods=['GET', 'POST'])
