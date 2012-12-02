@@ -40,3 +40,6 @@ nosetests.xml
 
 # sqlite DB
 meter.db
+
+# Foreman local configs
+.env
