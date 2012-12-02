@@ -5,12 +5,13 @@ import shelve
 import json
 import os
 import sys
+import logging
 
 app = Flask(__name__)
 
 DATA_FILE = 'meter'
 SHELF = shelve.open(DATA_FILE, writeback=True)
-DEBUG = 'dev' in os.environ or 'dev' in sys.argv
+DEBUG = 'DEBUG' in os.environ or 'dev' in sys.argv
 DATE_FORMAT = '%Y/%m/%d %H:%M:%S %Z'
 POINT_KEY_MAP = {
     'done': ['accepted'],
@@ -18,6 +19,8 @@ POINT_KEY_MAP = {
     'planned': ['unstarted'],
     'icebox': ['unscheduled']
 }
+
+logging.basicConfig(level=logging.INFO if DEBUG else logging.WARN)
 
 
 def merge_iom_data(new, old):
@@ -76,9 +79,9 @@ def parse_pivotal_xml(xml):
             except ValueError:
                 points = 1
             finally:
-                print "Estimate: %d, points: %d" % (estimate, points)
+                logging.info("Estimate: %d, points: %d" % (estimate, points))
         else:
-            print "No estimate, 1 point"
+            logging.info("No estimate, 1 point")
             points = 1
 
         story_data['points'] = points
@@ -96,9 +99,6 @@ def parse_pivotal_xml(xml):
 
     current_data = get_keys_totals(POINT_KEY_MAP, current_points)
     last_data = get_keys_totals(POINT_KEY_MAP, last_points)
-
-    print current_points
-    print last_points
 
     return current_data, last_data
 
@@ -197,9 +197,9 @@ if __name__ == '__main__':
     try:
         port = int(port)
     except ValueError:
-        print 'Invalid port: %s' % port
+        logging.error('Invalid port: %s' % port)
 
-    print "Settings:"
-    print "Debug: %s" % DEBUG
-    print "Port: %d" % port
+    logging.info("Settings:")
+    logging.info("Debug: %s" % DEBUG)
+    logging.info("Port: %d" % port)
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
