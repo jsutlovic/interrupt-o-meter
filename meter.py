@@ -12,6 +12,12 @@ DATA_FILE = 'meter'
 SHELF = shelve.open(DATA_FILE, writeback=True)
 DEBUG = 'dev' in os.environ or 'dev' in sys.argv
 DATE_FORMAT = '%Y/%m/%d %H:%M:%S %Z'
+POINT_KEY_MAP = {
+    'done': ['accepted'],
+    'started': ['delivered', 'started'],
+    'planned': ['unstarted'],
+    'icebox': ['unscheduled']
+}
 
 
 def merge_iom_data(new, old):
@@ -20,11 +26,20 @@ def merge_iom_data(new, old):
             zip(
                 new.keys(),
                 zip(
-                    zip([0]*4, new.values()),
-                    zip([1]*4, old.values())
+                    zip([0]*len(new.values()), new.values()),
+                    zip([1]*len(old.values()), old.values())
                 )
             )
         )
+
+
+def get_keys_totals(keysmap, data):
+    result = {}
+
+    for key, datakeys in keysmap.items():
+        result[key] = sum([data.get(datakey, 0) for datakey in datakeys])
+
+    return result
 
 
 def parse_pivotal_xml(xml):
