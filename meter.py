@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, abort
 from pyquery import PyQuery as pq
-from datetime import date, datetime
+from datetime import date, datetime, time
 import shelve
 import json
 import os
@@ -29,13 +29,30 @@ def merge_iom_data(new, old):
 
 def parse_pivotal_xml(xml):
     stories = pq(xml)
+    current_iteration = []
+    last_iteration = []
+
+    current_iteration_date = datetime.combine(SHELF['current_iteration'], time())
+    last_iteration_date = datetime.combine(SHELF['last_iteration'], time())
+
+    current_data = {}
+    last_data = {}
+
     for story in stories("story"):
         s = pq(story)
+        story_data = {}
+        story_data['date'] = datetime.strptime(s.children("created_at").text(), DATE_FORMAT)
+
+        if story_data.get('date') > current_iteration_date:
+            print "in this iteration"
+        elif story_data.get('date') > last_iteration_date:
+            print "last iteration"
+        else:
+            print story_data.get('date')
 
         print s.children("current_state").text()
-        print s.children("created_at")
-        print datetime.strptime(s.children("created_at").text(), DATE_FORMAT)
         print "====="
+        print
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -84,14 +101,14 @@ def index():
         }
     }
 
-    current_data = {
+    SHELF['current_iteration_data'] = {
         'done': 3,
         'started': 2,
         'planned': 4,
         'icebox': 1
     }
 
-    iom_data = merge_iom_data(current_data, SHELF['last_iteration_data'])
+    iom_data = merge_iom_data(SHELF['current_iteration_data'], SHELF['last_iteration_data'])
     iom_data = json.dumps(iom_data)
 
     days_since = json.dumps(days_since_data)
@@ -109,6 +126,14 @@ def setup_db():
     SHELF['max_hotfix'] = 0
 
     SHELF['current_iteration'] = date(2012, 11, 12)
+    SHELF['current_iteration_data'] = {
+        'done': 0,
+        'started': 0,
+        'planned': 0,
+        'icebox': 0
+    }
+
+    SHELF['last_iteration'] = date(2012, 10, 26)
     SHELF['last_iteration_data'] = {
         'done': 0,
         'started': 0,
