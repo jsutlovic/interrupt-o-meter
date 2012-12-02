@@ -11,7 +11,7 @@ function interrupt_bar_stacked(container, data){
         { data: d3, label: "Planned" },
         { data: d4, label: "Icebox" },
     ], {
-        colors: ['#00A8F0', '#CCCCCC', '#C0D800', '#4DA74D'],
+        colors: ['#4DA74D', '#C0D800', '#CCCCCC', '#00A8F0'],
         legend: {
             backgroundColor: "#FAFDFE",
         },
