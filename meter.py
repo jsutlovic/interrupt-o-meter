@@ -21,19 +21,27 @@ POINT_KEY_MAP = {
 
 
 def merge_iom_data(new, old):
+    """
+    Zips values of two dictionaries together, with new values paired with 0
+    and old values paired with 1
+    """
+
     return dict(
-            (k, v) for (k, v) in
+        (k, v) for (k, v) in
+        zip(
+            new.keys(),
             zip(
-                new.keys(),
-                zip(
-                    zip([0]*len(new.values()), new.values()),
-                    zip([1]*len(old.values()), old.values())
-                )
+                zip([0] * len(new.values()), new.values()),
+                zip([1] * len(old.values()), old.values())
             )
         )
+    )
 
 
 def get_keys_totals(keysmap, data):
+    """
+    Map data in one formatted dictionary to another
+    """
     result = {}
 
     for key, datakeys in keysmap.items():
@@ -43,10 +51,13 @@ def get_keys_totals(keysmap, data):
 
 
 def parse_pivotal_xml(xml):
+    """
+    Get meaningful information out of Pivotal XML data
+    """
     stories = pq(xml)
 
-    current_iteration_date = datetime.combine(SHELF['current_iteration'], time())
-    last_iteration_date = datetime.combine(SHELF['last_iteration'], time())
+    current_date = datetime.combine(SHELF['current_iteration'], time())
+    last_date = datetime.combine(SHELF['last_iteration'], time())
 
     current_points = {}
     last_points = {}
@@ -54,7 +65,8 @@ def parse_pivotal_xml(xml):
     for story in stories("story"):
         s = pq(story)
         story_data = {}
-        story_data['date'] = datetime.strptime(s.children("created_at").text(), DATE_FORMAT)
+        story_data['date'] = datetime.strptime(s.children("created_at").text(),
+                                               DATE_FORMAT)
         story_data['state'] = s.children("current_state").text()
 
         if s.children('estimate'):
@@ -71,15 +83,16 @@ def parse_pivotal_xml(xml):
 
         story_data['points'] = points
 
-        if story_data.get('date') > current_iteration_date:
+        if story_data.get('date') > current_date:
             data_dict = current_points
-        elif story_data.get('date') > last_iteration_date:
+        elif story_data.get('date') > last_date:
             data_dict = last_points
         else:
             data_dict = None
 
         if data_dict is not None:
-            data_dict[story_data['state']] = data_dict.get(story_data['state'], 0) + story_data['points']
+            state = story_data['state']
+            data_dict[state] = data_dict.get(state, 0) + story_data['points']
 
     current_data = get_keys_totals(POINT_KEY_MAP, current_points)
     last_data = get_keys_totals(POINT_KEY_MAP, last_points)
@@ -145,11 +158,14 @@ def index():
         'icebox': 1
     }
 
-    iom_data = merge_iom_data(SHELF['current_iteration_data'], SHELF['last_iteration_data'])
+    iom_data = merge_iom_data(SHELF['current_iteration_data'],
+                              SHELF['last_iteration_data'])
     iom_data = json.dumps(iom_data)
 
     days_since = json.dumps(days_since_data)
-    return render_template('index.html', days_since=days_since, iom_data=iom_data)
+    return render_template('index.html',
+                           days_since=days_since,
+                           iom_data=iom_data)
 
 
 def setup_db():
@@ -163,20 +179,10 @@ def setup_db():
     SHELF['max_hotfix'] = 0
 
     SHELF['current_iteration'] = date(2012, 11, 12)
-    SHELF['current_iteration_data'] = {
-        'done': 0,
-        'started': 0,
-        'planned': 0,
-        'icebox': 0
-    }
+    SHELF['current_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
 
     SHELF['last_iteration'] = date(2012, 10, 26)
-    SHELF['last_iteration_data'] = {
-        'done': 0,
-        'started': 0,
-        'planned': 0,
-        'icebox': 0
-    }
+    SHELF['last_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
 
     # Finished setup, so we're set up
     SHELF['setup'] = True
@@ -184,7 +190,7 @@ def setup_db():
 
 
 if __name__ == '__main__':
-    if not SHELF.has_key('setup') or DEBUG:
+    if not 'setup' in SHELF or DEBUG:
         setup_db()
 
     port = os.environ.get('PORT', 8084)
