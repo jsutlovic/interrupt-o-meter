@@ -44,30 +44,52 @@ def get_keys_totals(keysmap, data):
 
 def parse_pivotal_xml(xml):
     stories = pq(xml)
-    current_iteration = []
-    last_iteration = []
 
     current_iteration_date = datetime.combine(SHELF['current_iteration'], time())
     last_iteration_date = datetime.combine(SHELF['last_iteration'], time())
 
-    current_data = {}
-    last_data = {}
+    current_points = {}
+    last_points = {}
 
     for story in stories("story"):
         s = pq(story)
         story_data = {}
         story_data['date'] = datetime.strptime(s.children("created_at").text(), DATE_FORMAT)
+        story_data['state'] = s.children("current_state").text()
+
+        if s.children('estimate'):
+            try:
+                estimate = int(s.children('estimate').text())
+                points = max(estimate, 1)
+            except ValueError:
+                points = 1
+            finally:
+                print "Estimate: %d, points: %d" % (estimate, points)
+        else:
+            print "No estimate, 1 point"
+            points = 1
+
+        story_data['points'] = points
 
         if story_data.get('date') > current_iteration_date:
-            print "in this iteration"
+            data_dict = current_points
         elif story_data.get('date') > last_iteration_date:
-            print "last iteration"
+            data_dict = last_points
         else:
-            print story_data.get('date')
+            data_dict = None
 
-        print s.children("current_state").text()
-        print "====="
-        print
+        if data_dict is not None:
+            data_dict[story_data['state']] = data_dict.get(story_data['state'], 0) + story_data['points']
+
+    current_data = get_keys_totals(POINT_KEY_MAP, current_points)
+    last_data = get_keys_totals(POINT_KEY_MAP, last_points)
+
+    print current_points
+    print last_points
+
+    return current_data, last_data
+
+
 
 
 @app.route('/', methods=['GET', 'POST'])
