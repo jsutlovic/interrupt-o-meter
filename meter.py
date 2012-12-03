@@ -8,6 +8,7 @@ import logging
 import requests
 from pyquery import PyQuery as pq
 from datetime import date, datetime, time
+from dateutil.parser import parse as date_parse
 from flask import Flask, render_template, request, abort
 
 
@@ -22,7 +23,6 @@ TRACKER_TOKEN = os.environ.get('TRACKER_TOKEN')
 PROJECT_ID = os.environ.get('PROJECT_ID')
 
 SHELF = shelve.open(DATA_FILE, writeback=True)
-DATE_FORMAT = '%Y/%m/%d %H:%M:%S %Z'
 POINT_KEY_MAP = {
     'done': ['accepted'],
     'started': ['delivered', 'started'],
@@ -81,17 +81,24 @@ def parse_pivotal_xml(xml):
 
     current_points = {}
     last_points = {}
+    old_points = {}
 
     stories = pq(xml)
 
     for story in stories("story"):
         s = pq(story)
         story_data = {}
-        story_data['date'] = datetime.strptime(s.children("created_at").text(),
-                                               DATE_FORMAT)
+
+        story_data['name'] = s.children('name').text()
+        story_data['id'] = s.children('id').text()
+        logging.info('Story %s: %s' % (story_data['id'], story_data['name']))
+
+        story_date = date_parse(s.children("created_at").text())
+        story_data['date'] = story_date
         logging.info('Date: %s' % story_data['date'].ctime())
 
         story_data['state'] = s.children("current_state").text()
+        logging.info('State: %s' % story_data['state'])
 
         if s.children('estimate'):
             try:
@@ -107,15 +114,15 @@ def parse_pivotal_xml(xml):
 
         story_data['points'] = points
 
-        if story_data.get('date') >= current_date:
+        if story_date >= current_date.replace(tzinfo=story_date.tzinfo):
             logging.info('Current iteration')
             data_dict = current_points
-        elif story_data.get('date') >= last_date:
+        elif story_date >= last_date.replace(tzinfo=story_date.tzinfo):
             logging.info('Last iteration')
             data_dict = last_points
         else:
             logging.info('No iteration')
-            data_dict = None
+            data_dict = old_points
 
         if data_dict is not None:
             state = story_data['state']
@@ -125,18 +132,26 @@ def parse_pivotal_xml(xml):
 
     current_data = get_keys_totals(POINT_KEY_MAP, current_points)
     last_data = get_keys_totals(POINT_KEY_MAP, last_points)
+    old_data = get_keys_totals(POINT_KEY_MAP, old_points)
 
-    return current_data, last_data
+    return current_data, last_data, old_data
 
 
-def get_pivotal_data(project, token, label='interrupt', includedone=True):
+def get_pivotal_data(project, token,
+                     label='interrupt', done=True, custom=None):
+    """
+    Pull XML data from Pivotal API, with filters
+
+    Note: specifying custom will ignore other filters
+    """
+
     base_url = "https://www.pivotaltracker.com/services/v3/projects/%s/stories"
     url = base_url % project
     headers = {'X-TrackerToken': token}
     filter_params = "label:\"%s\"" % label
-    if includedone:
+    if done:
         filter_params += " includedone:true"
-    params = {'filter': filter_params}
+    params = {'filter': custom or filter_params}
 
     try:
         r = requests.get(url, params=params, headers=headers, timeout=0.5)
