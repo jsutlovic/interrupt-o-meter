@@ -211,6 +211,15 @@ def index():
             elif request.form.get('reset') == 'iteration':
                 return "Reset iteration!"
 
+        if 'update' in request.form:
+            if request.form.get('update') == 'iteration':
+                updated = update_meter_data()
+                if updated:
+                    #TODO: send data back
+                    return "OK"
+                else:
+                    abort(500)
+
         abort(400)
 
     last_outage = (date.today() - SHELF['last_outage']).days
@@ -236,13 +245,6 @@ def index():
             'current': last_hotfix,
             'max': max_hotfix
         }
-    }
-
-    SHELF['current_iteration_data'] = {
-        'done': 3,
-        'started': 2,
-        'planned': 4,
-        'icebox': 1
     }
 
     iom_data = merge_iom_data(SHELF['current_iteration_data'],
