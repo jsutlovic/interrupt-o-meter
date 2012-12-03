@@ -1,17 +1,27 @@
-from flask import Flask, render_template, request, abort
-from pyquery import PyQuery as pq
-from datetime import date, datetime, time
-import shelve
-import json
+#!/usr/bin/env python
+
 import os
 import sys
+import json
+import shelve
 import logging
+import requests
+from pyquery import PyQuery as pq
+from datetime import date, datetime, time
+from flask import Flask, render_template, request, abort
+
 
 app = Flask(__name__)
 
-DATA_FILE = 'meter'
-SHELF = shelve.open(DATA_FILE, writeback=True)
+# Global defs
+
+# Environment defined
 DEBUG = 'DEBUG' in os.environ or 'dev' in sys.argv
+DATA_FILE = os.environ.get('DATA_FILE', 'meter.db')
+TRACKER_TOKEN = os.environ.get('TRACKER_TOKEN')
+PROJECT_ID = os.environ.get('PROJECT_ID')
+
+SHELF = shelve.open(DATA_FILE, writeback=True)
 DATE_FORMAT = '%Y/%m/%d %H:%M:%S %Z'
 POINT_KEY_MAP = {
     'done': ['accepted'],
@@ -27,6 +37,11 @@ def merge_iom_data(new, old):
     """
     Zips values of two dictionaries together, with new values paired with 0
     and old values paired with 1
+
+    Ex: merge_iom_data({'a': 1, 'b': 0, 'c': 3}, {'a': 3, 'b': 5, 'c': -1})
+    Results in: {'a': [(0, 1), (1, 3)],
+                 'b': [(0, 0), (1, 5)],
+                 'c': [(0, 3), (1, -1)]}
     """
 
     return dict(
@@ -43,7 +58,11 @@ def merge_iom_data(new, old):
 
 def get_keys_totals(keysmap, data):
     """
-    Map data in one formatted dictionary to another
+    Map data in one formatted dictionary to another by summing
+
+    Ex: get_keys_totals({'ab': ['a', 'b'], 'c': ['c'], 'def': ['d', 'e', 'f']},
+                        {'a': -1, 'b': 3, 'c': 8, 'd': 4, 'e': -2, 'f': 1})
+    Results in: {'ab': 2, 'c': 8, 'def': 3}
     """
     result = {}
 
@@ -207,4 +226,8 @@ if __name__ == '__main__':
     logging.info("Settings:")
     logging.info("Debug: %s" % DEBUG)
     logging.info("Port: %d" % port)
+    logging.info("Data file: %s" % DATA_FILE)
+    logging.info("Tracker token: %s" % TRACKER_TOKEN)
+    logging.info("Project ID: %s" % PROJECT_ID)
+
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
