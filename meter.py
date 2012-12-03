@@ -246,16 +246,20 @@ if __name__ == '__main__':
         setup_db()
 
     port = os.environ.get('PORT', 8084)
+
+    logging.info("Settings:")
+    logging.info("Debug: %s" % DEBUG)
+    logging.info("Port: %s" % port)
+    logging.info("Data file: %s" % DATA_FILE)
+    logging.info("Tracker token: %s" % TRACKER_TOKEN)
+    logging.info("Project ID: %s" % PROJECT_ID)
+
     try:
         port = int(port)
     except ValueError:
         logging.error('Invalid port: %s' % port)
 
-    logging.info("Settings:")
-    logging.info("Debug: %s" % DEBUG)
-    logging.info("Port: %d" % port)
-    logging.info("Data file: %s" % DATA_FILE)
-    logging.info("Tracker token: %s" % TRACKER_TOKEN)
-    logging.info("Project ID: %s" % PROJECT_ID)
+    if not (TRACKER_TOKEN and PROJECT_ID):
+        logging.error('Must specify TRACKER_TOKEN and PROJECT_ID')
 
     app.run(host='0.0.0.0', port=port, debug=DEBUG)
