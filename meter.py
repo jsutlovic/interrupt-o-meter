@@ -76,19 +76,21 @@ def parse_pivotal_xml(xml):
     """
     Get meaningful information out of Pivotal XML data
     """
-    stories = pq(xml)
-
     current_date = datetime.combine(SHELF['current_iteration'], time())
     last_date = datetime.combine(SHELF['last_iteration'], time())
 
     current_points = {}
     last_points = {}
 
+    stories = pq(xml)
+
     for story in stories("story"):
         s = pq(story)
         story_data = {}
         story_data['date'] = datetime.strptime(s.children("created_at").text(),
                                                DATE_FORMAT)
+        logging.info('Date: %s' % story_data['date'].ctime())
+
         story_data['state'] = s.children("current_state").text()
 
         if s.children('estimate'):
@@ -105,16 +107,21 @@ def parse_pivotal_xml(xml):
 
         story_data['points'] = points
 
-        if story_data.get('date') > current_date:
+        if story_data.get('date') >= current_date:
+            logging.info('Current iteration')
             data_dict = current_points
-        elif story_data.get('date') > last_date:
+        elif story_data.get('date') >= last_date:
+            logging.info('Last iteration')
             data_dict = last_points
         else:
+            logging.info('No iteration')
             data_dict = None
 
         if data_dict is not None:
             state = story_data['state']
             data_dict[state] = data_dict.get(state, 0) + story_data['points']
+
+        logging.info('---')
 
     current_data = get_keys_totals(POINT_KEY_MAP, current_points)
     last_data = get_keys_totals(POINT_KEY_MAP, last_points)
