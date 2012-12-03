@@ -89,4 +89,18 @@ $(function(){
             }
         );
     });
+
+    $("a.update.btn").click(function(e){
+        e.preventDefault();
+
+        var which = $(this).attr('href').replace('#', '');
+
+        $.post(
+            '/',
+            {update: which},
+            function(data) {
+                alert("Updated!: " + data);
+            }
+        );
+    });
 });
