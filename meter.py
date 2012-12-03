@@ -63,6 +63,9 @@ def get_keys_totals(keysmap, data):
     Ex: get_keys_totals({'ab': ['a', 'b'], 'c': ['c'], 'def': ['d', 'e', 'f']},
                         {'a': -1, 'b': 3, 'c': 8, 'd': 4, 'e': -2, 'f': 1})
     Results in: {'ab': 2, 'c': 8, 'def': 3}
+
+    Ex2: get_keys_totals({'ab': ['a', 'b'], 'c': ['c']}, {})
+    Results in: {'ab': 0, 'c': 0}
     """
     result = {}
 
@@ -166,10 +169,27 @@ def get_pivotal_data(project, token,
 
 
 def update_meter_data():
-    # Get data from pivotal
-    # process data
-    # set data to SHELF
-    raise NotImplemented
+    """
+    Get data from Pivotal, parse it, and shelve it
+    """
+
+    pivotal_xml = get_pivotal_data(PROJECT_ID, TRACKER_TOKEN)
+
+    if not pivotal_xml:
+        logging.error("Couldn't fetch data from Pivotal!")
+        return False
+
+    current_data, last_data, old_data = parse_pivotal_xml(pivotal_xml)
+
+    logging.info("Current data: %s" % current_data)
+    logging.info("Last data: %s" % last_data)
+    logging.info("Old data: %s" % old_data)
+
+    SHELF['current_iteration_data'] = current_data
+    SHELF['last_iteration_data'] = last_data
+    SHELF.sync()
+
+    return True
 
 
 @app.route('/', methods=['GET', 'POST'])
