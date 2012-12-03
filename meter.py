@@ -129,6 +129,27 @@ def parse_pivotal_xml(xml):
     return current_data, last_data
 
 
+def get_pivotal_data(project, token, label='interrupt', includedone=True):
+    base_url = "https://www.pivotaltracker.com/services/v3/projects/%s/stories"
+    url = base_url % project
+    headers = {'X-TrackerToken': token}
+    filter_params = "label:\"%s\"" % label
+    if includedone:
+        filter_params += " includedone:true"
+    params = {'filter': filter_params}
+
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=0.5)
+    except Exception, error:
+        logging.exception(error)
+        r = None
+
+    if r and r.status_code == 200:
+        return r.content
+    else:
+        return None
+
+
 def update_meter_data():
     # Get data from pivotal
     # process data
