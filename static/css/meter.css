@@ -30,6 +30,7 @@ h1.title {
   padding-bottom: 8px;
   box-sizing: border-box;
   -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
   border: 1px solid #252526;
   border-radius: 10px;
 }
