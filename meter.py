@@ -210,7 +210,13 @@ def index():
                 return "OK"
 
             elif request.form.get('reset') == 'iteration':
-                return "Reset iteration!"
+                current_iteration = date.today()
+                last_iteration = SHELF['current_iteration']
+                SHELF['current_iteration'] = current_iteration
+                SHELF['last_iteration'] = last_iteration
+                SHELF.sync()
+
+                updated = update_meter_data()
 
         if 'update' in request.form:
             if request.form.get('update') == 'iteration':
@@ -297,9 +303,16 @@ def setup():
             SHELF['last_iteration'] = date_parse(dates['last']).date()
             SHELF['last_hotfix'] = date_parse(dates['hotfix']).date()
             SHELF['last_outage'] = date_parse(dates['outage']).date()
-            SHELF['max_hotfix'] = int(records['hotfix'])
-            SHELF['max_outage'] = int(records['outage'])
+
+            try:
+                SHELF['max_hotfix'] = int(records['hotfix'])
+                SHELF['max_outage'] = int(records['outage'])
+            except ValueError:
+                abort(400)
+
             SHELF.sync()
+        else:
+            abort(400)
 
     return render_template('setup.html', dates=dates, records=records)
 
