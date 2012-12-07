@@ -21,6 +21,7 @@ DEBUG = 'DEBUG' in os.environ or 'dev' in sys.argv
 DATA_FILE = os.environ.get('DATA_FILE', 'meter.db')
 TRACKER_TOKEN = os.environ.get('TRACKER_TOKEN')
 PROJECT_ID = os.environ.get('PROJECT_ID')
+DATE_FMT = "%Y-%m-%d"
 
 SHELF = shelve.open(DATA_FILE, writeback=True)
 POINT_KEY_MAP = {
@@ -256,6 +257,51 @@ def index():
                            days_since=days_since,
                            iom_data=iom_data)
 
+
+@app.route('/setup', methods=['GET', 'POST'])
+def setup():
+    dates = {
+        'current': SHELF['current_iteration'].strftime(DATE_FMT),
+        'last': SHELF['last_iteration'].strftime(DATE_FMT),
+        'hotfix': SHELF['last_hotfix'].strftime(DATE_FMT),
+        'outage': SHELF['last_outage'].strftime(DATE_FMT),
+    }
+
+    records = {
+        'hotfix': SHELF['max_hotfix'],
+        'outage': SHELF['max_outage'],
+    }
+
+    if request.method == "POST":
+        logging.info(request.form)
+        if 'setup' in request.form:
+            dates.update({
+                'current': request.form.get('current',
+                    SHELF['current_iteration'].strftime(DATE_FMT)),
+                'last': request.form.get('last',
+                    SHELF['last_iteration'].strftime(DATE_FMT)),
+                'hotfix': request.form.get('hotfix',
+                    SHELF['last_hotfix'].strftime(DATE_FMT)),
+                'outage': request.form.get('outage',
+                    SHELF['last_outage'].strftime(DATE_FMT)),
+            })
+
+            records.update({
+                'hotfix': request.form.get('hotfix-record',
+                    SHELF['max_hotfix']),
+                'outage': request.form.get('outage-record',
+                    SHELF['max_outage']),
+            })
+
+            SHELF['current_iteration'] = date_parse(dates['current']).date()
+            SHELF['last_iteration'] = date_parse(dates['last']).date()
+            SHELF['last_hotfix'] = date_parse(dates['hotfix']).date()
+            SHELF['last_outage'] = date_parse(dates['outage']).date()
+            SHELF['max_hotfix'] = int(records['hotfix'])
+            SHELF['max_outage'] = int(records['outage'])
+            SHELF.sync()
+
+    return render_template('setup.html', dates=dates, records=records)
 
 def setup_db():
     """

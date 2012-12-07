@@ -28,9 +28,6 @@
 
     <!-- Script initialization stuff -->
     <script>
-      var interrupt_data = {{ iom_data|safe }};
-
-      var days_since = {{ days_since|safe }};
     </script>
   </head>
 
@@ -44,43 +41,46 @@
 
       <div class="row">
         <div class="span4 offset4">
-          <a class="btn nav" href="/setup">Setup</a>
+          <a class="btn nav" href="/">Meter</a>
         </div>
       </div>
 
       <div class="row">
 
-        <div class="span4 hotfix">
-          <h3>Days since Hotfix</h3>
+        <div class="span4 offset4 setup">
+          <form action="/setup" method="POST">
+            <div>
+              <label><h5>Current Iteration</h5></label>
+              <input type="date" id="current-date" name="current" value="{{ dates.current }}" />
+            </div>
 
-          <span class="days current"></span>
+            <div>
+              <label><h5>Last Iteration</h5></label>
+              <input type="date" id="last-date" name="last" value="{{ dates.last }}" />
+            </div>
 
-          <hr />
-          <h4>Record:</h4>
-          <span class="days max small"></span>
+            <div>
+              <label><h5>Last Hotfix</h5></label>
+              <input type="date" id="hotfix-date" name="hotfix" value="{{ dates.hotfix }}" />
+            </div>
 
-          <a href="#hotfix" class="reset btn">Reset</a>
-        </div>
+            <div>
+              <label><h5>Hotfix Record</h5></label>
+              <input type="int" id="hotfix-max" name="hotfix-record" value="{{ records.hotfix }}" />
+            </div>
 
-        <div class="span4 outage">
-          <h3>Days since Outage</h3>
+            <div>
+              <label><h5>Last Outage</h5></label>
+              <input type="date" id="outage-date" name="outage" value="{{ dates.outage }}" />
+            </div>
 
-          <span class="days current"></span>
+            <div>
+              <label><h5>Outage Record</h5></label>
+              <input type="int" id="outage-max" name="outage-record" value="{{ records.outage }}" />
+            </div>
 
-          <hr />
-          <h4>Record:</h4>
-          <span class="days max small"></span>
-
-          <a href="#outage" class="reset btn">Reset</a>
-        </div>
-
-        <div class="span4 interrupts">
-          <h3>Interrupts</h3>
-
-          <div id="interrupts_graph"></div>
-
-          <a href="#iteration" class="reset btn">Reset</a>
-          <a href="#iteration" class="update btn">Update</a>
+            <input type="submit" id="setup_submit" name="setup" class="btn" />
+          </form>
         </div>
 
       </div>
@@ -92,7 +92,6 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/static/libs/jquery/jquery-1.8.3.min.js"></script>
     <script src="/static/libs/flotr2/flotr2.min.js"></script>
-    <script src="/static/js/meter.js"></script>
 
   </body>
 </html>
