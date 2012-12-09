@@ -282,21 +282,33 @@ def setup():
         logging.info(request.form)
         if 'setup' in request.form:
             dates.update({
-                'current': request.form.get('current',
-                    SHELF['current_iteration'].strftime(DATE_FMT)),
-                'last': request.form.get('last',
-                    SHELF['last_iteration'].strftime(DATE_FMT)),
-                'hotfix': request.form.get('hotfix',
-                    SHELF['last_hotfix'].strftime(DATE_FMT)),
-                'outage': request.form.get('outage',
-                    SHELF['last_outage'].strftime(DATE_FMT)),
+                'current': request.form.get(
+                    'current',
+                    SHELF['current_iteration'].strftime(DATE_FMT)
+                ),
+                'last': request.form.get(
+                    'last',
+                    SHELF['last_iteration'].strftime(DATE_FMT)
+                ),
+                'hotfix': request.form.get(
+                    'hotfix',
+                    SHELF['last_hotfix'].strftime(DATE_FMT)
+                ),
+                'outage': request.form.get(
+                    'outage',
+                    SHELF['last_outage'].strftime(DATE_FMT)
+                ),
             })
 
             records.update({
-                'hotfix': request.form.get('hotfix-record',
-                    SHELF['max_hotfix']),
-                'outage': request.form.get('outage-record',
-                    SHELF['max_outage']),
+                'hotfix': request.form.get(
+                    'hotfix-record',
+                    SHELF['max_hotfix']
+                ),
+                'outage': request.form.get(
+                    'outage-record',
+                    SHELF['max_outage']
+                ),
             })
 
             SHELF['current_iteration'] = date_parse(dates['current']).date()
@@ -315,6 +327,7 @@ def setup():
             abort(400)
 
     return render_template('setup.html', dates=dates, records=records)
+
 
 def setup_db():
     """
