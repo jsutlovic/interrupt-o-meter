@@ -33,11 +33,11 @@ h1.title {
 }
 
 #interrupts_graph {
-  height: 300px;
+  height: 400px;
   margin: 20px 24px;
 }
 
-.span4 {
+.span4, .span6, .span8 {
   background-color: #FAFAFA;
   text-align: center;
   padding-bottom: 8px;
@@ -46,9 +46,6 @@ h1.title {
   -moz-box-sizing: border-box;
   border: 1px solid #252526;
   border-radius: 10px;
-}
-
-.span4 h3 {
 }
 
 .hotfix {
