@@ -158,7 +158,7 @@ def get_pivotal_data(project, token,
     params = {'filter': custom or filter_params}
 
     try:
-        r = requests.get(url, params=params, headers=headers, timeout=0.5)
+        r = requests.get(url, params=params, headers=headers, timeout=3)
     except Exception, error:
         logging.exception(error)
         r = None
