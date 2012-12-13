@@ -385,6 +385,7 @@ if __name__ == '__main__':
     if not 'setup' in shelf or DEBUG:
         shelf.close()
         setup_db()
+        update_meter_data()
 
     port = os.environ.get('PORT', 8084)
 
