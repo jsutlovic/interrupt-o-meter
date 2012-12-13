@@ -193,6 +193,11 @@ def update_meter_data():
     return True
 
 
+@celery.task
+def tq_update_meter_data():
+    update_meter_data()
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
