@@ -7,7 +7,7 @@ CELERY_IMPORTS = ('meter','requests',)
 CELERYBEAT_SCHEDULE = {
     'update-meter': {
         'task': 'meter.tq_update_meter_data',
-        'schedule': timedelta(minutes=1),
+        'schedule': timedelta(minutes=20),
         'args': ()
     },
 }
