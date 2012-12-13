@@ -95,14 +95,14 @@ def parse_pivotal_xml(xml):
 
         story_data['name'] = s.children('name').text()
         story_data['id'] = s.children('id').text()
-        logging.info('Story %s: %s' % (story_data['id'], story_data['name']))
+        logging.debug('Story %s: %s' % (story_data['id'], story_data['name']))
 
-        story_date = date_parse(s.children("created_at").text())
+        story_date = d_parse(s.children("created_at").text())
         story_data['date'] = story_date
-        logging.info('Date: %s' % story_data['date'].ctime())
+        logging.debug('Date: %s' % story_data['date'].ctime())
 
         story_data['state'] = s.children("current_state").text()
-        logging.info('State: %s' % story_data['state'])
+        logging.debug('State: %s' % story_data['state'])
 
         if s.children('estimate'):
             try:
@@ -111,28 +111,28 @@ def parse_pivotal_xml(xml):
             except ValueError:
                 points = 1
             finally:
-                logging.info("Estimate: %d, points: %d" % (estimate, points))
+                logging.debug("Estimate: %d, points: %d" % (estimate, points))
         else:
-            logging.info("No estimate, 1 point")
+            logging.debug("No estimate, 1 point")
             points = 1
 
         story_data['points'] = points
 
         if story_date >= current_date.replace(tzinfo=story_date.tzinfo):
-            logging.info('Current iteration')
+            logging.debug('Current iteration')
             data_dict = current_points
         elif story_date >= last_date.replace(tzinfo=story_date.tzinfo):
-            logging.info('Last iteration')
+            logging.debug('Last iteration')
             data_dict = last_points
         else:
-            logging.info('No iteration')
+            logging.debug('No iteration')
             data_dict = old_points
 
         if data_dict is not None:
             state = story_data['state']
             data_dict[state] = data_dict.get(state, 0) + story_data['points']
 
-        logging.info('---')
+        logging.debug('---')
 
     current_data = get_keys_totals(POINT_KEY_MAP, current_points)
     last_data = get_keys_totals(POINT_KEY_MAP, last_points)
