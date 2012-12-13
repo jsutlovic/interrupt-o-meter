@@ -3,4 +3,5 @@ lxml==3.0.1
 pyquery==1.2.4
 celery==3.0.12
 requests==0.14.2
+SQLAlchemy==0.7.9
 python-dateutil==1.5
