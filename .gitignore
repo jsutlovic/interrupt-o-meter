@@ -38,8 +38,8 @@ nosetests.xml
 # JS libraries
 #static/libs
 
-# sqlite DB
-meter.db
+# Shelve dbm file
+meter.db*
 
 # Foreman local configs
 .env
