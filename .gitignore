@@ -43,3 +43,7 @@ meter.db
 
 # Foreman local configs
 .env
+
+# Celery things
+celerydb*
+celerybeat-schedule*
