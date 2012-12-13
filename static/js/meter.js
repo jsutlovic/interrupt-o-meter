@@ -100,6 +100,8 @@ $(function(){
             {update: which},
             function(data) {
                 alert("Updated!: " + data);
+                // Reload the page
+                setTimeout(function(){location.reload(true);}, 300);
             }
         );
     });
