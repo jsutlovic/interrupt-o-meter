@@ -6,13 +6,18 @@ import json
 import shelve
 import logging
 import requests
+import celeryconfig
+from celery import Celery
+from contextlib import closing
 from pyquery import PyQuery as pq
 from datetime import date, datetime, time
-from dateutil.parser import parse as date_parse
+from dateutil.parser import parse as d_parse
 from flask import Flask, render_template, request, abort
 
 
 app = Flask(__name__)
+celery = Celery('meter')
+celery.config_from_object(celeryconfig)
 
 # Global defs
 
@@ -23,7 +28,6 @@ TRACKER_TOKEN = os.environ.get('TRACKER_TOKEN')
 PROJECT_ID = os.environ.get('PROJECT_ID')
 DATE_FMT = "%Y-%m-%d"
 
-SHELF = shelve.open(DATA_FILE, writeback=True)
 POINT_KEY_MAP = {
     'done': ['accepted'],
     'started': ['delivered', 'started'],
@@ -32,6 +36,10 @@ POINT_KEY_MAP = {
 }
 
 logging.basicConfig(level=logging.INFO if DEBUG else logging.WARN)
+
+
+def get_shelf():
+    return shelve.open(DATA_FILE, writeback=True)
 
 
 def merge_iom_data(new, old):
@@ -80,8 +88,9 @@ def parse_pivotal_xml(xml):
     """
     Get meaningful information out of Pivotal XML data
     """
-    current_date = datetime.combine(SHELF['current_iteration'], time())
-    last_date = datetime.combine(SHELF['last_iteration'], time())
+    with closing(get_shelf()) as shelf:
+        current_date = datetime.combine(shelf['current_iteration'], time())
+        last_date = datetime.combine(shelf['last_iteration'], time())
 
     current_points = {}
     last_points = {}
@@ -166,15 +175,22 @@ def get_pivotal_data(project, token,
     if r and r.status_code == 200:
         return r.content
     else:
+        logging.error('Server error, status code: %s' % r.status_code)
+        logging.error('Used: project: %s, token: %s' % (project, token))
         return None
 
 
-def update_meter_data():
+def update_meter_data(project=None, token=None):
     """
     Get data from Pivotal, parse it, and shelve it
     """
+    if not project:
+        project = PROJECT_ID
 
-    pivotal_xml = get_pivotal_data(PROJECT_ID, TRACKER_TOKEN)
+    if not token:
+        token = TRACKER_TOKEN
+
+    pivotal_xml = get_pivotal_data(project, token)
 
     if not pivotal_xml:
         logging.error("Couldn't fetch data from Pivotal!")
@@ -186,9 +202,11 @@ def update_meter_data():
     logging.info("Last data: %s" % last_data)
     logging.info("Old data: %s" % old_data)
 
-    SHELF['current_iteration_data'] = current_data
-    SHELF['last_iteration_data'] = last_data
-    SHELF.sync()
+    with closing(get_shelf()) as shelf:
+        shelf['current_iteration_data'] = current_data
+        shelf['last_iteration_data'] = last_data
+        logging.debug(shelf)
+        shelf.sync()
 
     return True
 
@@ -204,22 +222,25 @@ def index():
         if 'reset' in request.form:
             if request.form.get('reset') == 'hotfix':
                 last_outage = 0
-                SHELF['last_hotfix'] = date.today()
-                SHELF.sync()
+                with closing(get_shelf()) as shelf:
+                    shelf['last_hotfix'] = date.today()
+                    shelf.sync()
                 return "OK"
 
             elif request.form.get('reset') == 'outage':
                 last_hotfix = 0
-                SHELF['last_outage'] = date.today()
-                SHELF.sync()
+                with closing(get_shelf()) as shelf:
+                    shelf['last_outage'] = date.today()
+                    shelf.sync()
                 return "OK"
 
             elif request.form.get('reset') == 'iteration':
                 current_iteration = date.today()
-                last_iteration = SHELF['current_iteration']
-                SHELF['current_iteration'] = current_iteration
-                SHELF['last_iteration'] = last_iteration
-                SHELF.sync()
+                with closing(get_shelf()) as shelf:
+                    last_iteration = shelf['current_iteration']
+                    shelf['current_iteration'] = current_iteration
+                    shelf['last_iteration'] = last_iteration
+                    shelf.sync()
 
                 updated = update_meter_data()
 
@@ -234,36 +255,38 @@ def index():
 
         abort(400)
 
-    last_outage = (date.today() - SHELF['last_outage']).days
-    if last_outage > SHELF['max_outage']:
-        SHELF['max_outage'] = last_outage
-        SHELF.sync()
+    with closing(get_shelf()) as shelf:
+        last_outage = (date.today() - shelf['last_outage']).days
+        if last_outage > shelf['max_outage']:
+            shelf['max_outage'] = last_outage
+            shelf.sync()
 
-    max_outage = SHELF['max_outage']
+        max_outage = shelf['max_outage']
 
-    last_hotfix = (date.today() - SHELF['last_hotfix']).days
-    if last_hotfix > SHELF['max_hotfix']:
-        SHELF['max_hotfix'] = last_hotfix
-        SHELF.sync()
+        last_hotfix = (date.today() - shelf['last_hotfix']).days
+        if last_hotfix > shelf['max_hotfix']:
+            shelf['max_hotfix'] = last_hotfix
+            shelf.sync()
 
-    max_hotfix = SHELF['max_hotfix']
+        max_hotfix = shelf['max_hotfix']
 
-    days_since_data = {
-        'outage': {
-            'current': last_outage,
-            'max': max_outage
-        },
-        'hotfix': {
-            'current': last_hotfix,
-            'max': max_hotfix
+        days_since_data = {
+            'outage': {
+                'current': last_outage,
+                'max': max_outage
+            },
+            'hotfix': {
+                'current': last_hotfix,
+                'max': max_hotfix
+            }
         }
-    }
 
-    iom_data = merge_iom_data(SHELF['current_iteration_data'],
-                              SHELF['last_iteration_data'])
-    iom_data = json.dumps(iom_data)
+        iom_data = merge_iom_data(shelf['current_iteration_data'],
+                                  shelf['last_iteration_data'])
+        iom_data = json.dumps(iom_data)
 
-    days_since = json.dumps(days_since_data)
+        days_since = json.dumps(days_since_data)
+
     return render_template('index.html',
                            days_since=days_since,
                            iom_data=iom_data)
@@ -271,65 +294,66 @@ def index():
 
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
-    dates = {
-        'current': SHELF['current_iteration'].strftime(DATE_FMT),
-        'last': SHELF['last_iteration'].strftime(DATE_FMT),
-        'hotfix': SHELF['last_hotfix'].strftime(DATE_FMT),
-        'outage': SHELF['last_outage'].strftime(DATE_FMT),
-    }
+    with closing(get_shelf()) as shelf:
+        dates = {
+            'current': shelf['current_iteration'].strftime(DATE_FMT),
+            'last': shelf['last_iteration'].strftime(DATE_FMT),
+            'hotfix': shelf['last_hotfix'].strftime(DATE_FMT),
+            'outage': shelf['last_outage'].strftime(DATE_FMT),
+        }
 
-    records = {
-        'hotfix': SHELF['max_hotfix'],
-        'outage': SHELF['max_outage'],
-    }
+        records = {
+            'hotfix': shelf['max_hotfix'],
+            'outage': shelf['max_outage'],
+        }
 
-    if request.method == "POST":
-        logging.info(request.form)
-        if 'setup' in request.form:
-            dates.update({
-                'current': request.form.get(
-                    'current',
-                    SHELF['current_iteration'].strftime(DATE_FMT)
-                ),
-                'last': request.form.get(
-                    'last',
-                    SHELF['last_iteration'].strftime(DATE_FMT)
-                ),
-                'hotfix': request.form.get(
-                    'hotfix',
-                    SHELF['last_hotfix'].strftime(DATE_FMT)
-                ),
-                'outage': request.form.get(
-                    'outage',
-                    SHELF['last_outage'].strftime(DATE_FMT)
-                ),
-            })
+        if request.method == "POST":
+            logging.info(request.form)
+            if 'setup' in request.form:
+                dates.update({
+                    'current': request.form.get(
+                        'current',
+                        shelf['current_iteration'].strftime(DATE_FMT)
+                    ),
+                    'last': request.form.get(
+                        'last',
+                        shelf['last_iteration'].strftime(DATE_FMT)
+                    ),
+                    'hotfix': request.form.get(
+                        'hotfix',
+                        shelf['last_hotfix'].strftime(DATE_FMT)
+                    ),
+                    'outage': request.form.get(
+                        'outage',
+                        shelf['last_outage'].strftime(DATE_FMT)
+                    ),
+                })
 
-            records.update({
-                'hotfix': request.form.get(
-                    'hotfix-record',
-                    SHELF['max_hotfix']
-                ),
-                'outage': request.form.get(
-                    'outage-record',
-                    SHELF['max_outage']
-                ),
-            })
+                records.update({
+                    'hotfix': request.form.get(
+                        'hotfix-record',
+                        shelf['max_hotfix']
+                    ),
+                    'outage': request.form.get(
+                        'outage-record',
+                        shelf['max_outage']
+                    ),
+                })
 
-            SHELF['current_iteration'] = date_parse(dates['current']).date()
-            SHELF['last_iteration'] = date_parse(dates['last']).date()
-            SHELF['last_hotfix'] = date_parse(dates['hotfix']).date()
-            SHELF['last_outage'] = date_parse(dates['outage']).date()
+                shelf['current_iteration'] = d_parse(dates['current']).date()
+                shelf['last_iteration'] = d_parse(dates['last']).date()
+                shelf['last_hotfix'] = d_parse(dates['hotfix']).date()
+                shelf['last_outage'] = d_parse(dates['outage']).date()
 
-            try:
-                SHELF['max_hotfix'] = int(records['hotfix'])
-                SHELF['max_outage'] = int(records['outage'])
-            except ValueError:
+                try:
+                    shelf['max_hotfix'] = int(records['hotfix'])
+                    shelf['max_outage'] = int(records['outage'])
+                except ValueError:
+                    abort(400)
+
+                shelf.sync()
+            else:
                 abort(400)
-
-            SHELF.sync()
-        else:
-            abort(400)
 
     return render_template('setup.html', dates=dates, records=records)
 
@@ -338,25 +362,28 @@ def setup_db():
     """
     Provides some basic initial data for the app
     """
-    SHELF['last_outage'] = date(2012, 11, 24)
-    SHELF['max_outage'] = 0
+    with closing(get_shelf()) as shelf:
+        shelf['last_outage'] = date(2012, 11, 24)
+        shelf['max_outage'] = 0
 
-    SHELF['last_hotfix'] = date(2012, 11, 23)
-    SHELF['max_hotfix'] = 0
+        shelf['last_hotfix'] = date(2012, 11, 23)
+        shelf['max_hotfix'] = 0
 
-    SHELF['current_iteration'] = date(2012, 11, 12)
-    SHELF['current_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
+        shelf['current_iteration'] = date(2012, 11, 12)
+        shelf['current_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
 
-    SHELF['last_iteration'] = date(2012, 10, 26)
-    SHELF['last_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
+        shelf['last_iteration'] = date(2012, 10, 26)
+        shelf['last_iteration_data'] = get_keys_totals(POINT_KEY_MAP, {})
 
-    # Finished setup, so we're set up
-    SHELF['setup'] = True
-    SHELF.sync()
+        # Finished setup, so we're set up
+        shelf['setup'] = True
+        shelf.sync()
 
 
 if __name__ == '__main__':
-    if not 'setup' in SHELF or DEBUG:
+    shelf = get_shelf()
+    if not 'setup' in shelf or DEBUG:
+        shelf.close()
         setup_db()
 
     port = os.environ.get('PORT', 8084)
