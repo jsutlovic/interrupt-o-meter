@@ -235,8 +235,8 @@ def index():
                 return "OK"
 
             elif request.form.get('reset') == 'iteration':
-                current_iteration = date.today()
                 with closing(get_shelf()) as shelf:
+                    current_iteration = date.today()
                     last_iteration = shelf['current_iteration']
                     shelf['current_iteration'] = current_iteration
                     shelf['last_iteration'] = last_iteration

@@ -2,7 +2,7 @@ from datetime import timedelta
 
 BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
 
-CELERY_IMPORTS = ('meter','requests',)
+CELERY_IMPORTS = ('meter', 'requests', )
 
 CELERYBEAT_SCHEDULE = {
     'update-meter': {
